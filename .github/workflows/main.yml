@@ -5,3 +5,13 @@ on:
   push:
     branches:
       - 'develop'
+
+jobs:
+  branch:
+    uses: ./.github/workflows/branch.yml
+
+  config:
+    uses: ./.github/workflows/config.yml
+    needs: [ branch ]
+    with:
+      phase: ${{ needs.branch.outputs.branch }}

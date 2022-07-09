@@ -1,0 +1,27 @@
+name: Get branch
+
+on:
+  workflow_call:
+    outputs:
+      branch:
+        value: ${{ jobs.branch.outputs.branch  }}
+      tag:
+        value: ${{ jobs.branch.outputs.tag  }}
+
+jobs:
+  branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get branch name and tag
+        run: |
+          echo "::set-output name=branch::${GITHUB_REF##*/}"
+          if [[ "${{ github.event.inputs.env || inputs.env }}" != '' ]]; then
+            echo "tag=$(echo "${{ github.event.inputs.env || inputs.env }}")" >> $GITHUB_ENV
+          else
+            echo "tag=$(echo $GITHUB_REF_NAME | cut -d'/' -f2)" >> $GITHUB_ENV
+          fi
+        id: branch
+
+    outputs:
+      branch: ${{ steps.branch.outputs.branch }}
+      tag: ${{ env.tag }}

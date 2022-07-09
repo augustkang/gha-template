@@ -1,0 +1,43 @@
+name: Configure variables
+
+on:
+  workflow_call:
+    inputs:
+      phase:
+        required: true
+        type: string
+    outputs:
+      region:
+        value: ${{ jobs.config.outputs.region }}
+      role_to_assume:
+        value: ${{ jobs.config.outputs.role_to_assume }}
+      ecr_repository:
+        value: ${{ jobs.config.outputs.ecr_repository }}
+
+env:
+  region: ap-northeast-2
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  config:
+    runs-on: ubuntu-latest
+    steps:
+      # Conditional configuration per development phase (ex. iam role)
+      - name: Set aws config
+        run: |
+          echo "::set-output name=ecr_repository::ecr-repository"
+          if [ "${{ inputs.phase }}" = "develop" ]; then
+            echo "::set-output name=region::${{ env.region }}"
+            echo "::set-output name=role_to_assume::arn:aws:iam::123456789012:role/iam-role-dev"
+          elif [ "${{ inputs.phase }}" = "main" ]; then
+            echo "::set-output name=region::${{ env.region }}"
+            echo "::set-output name=role_to_assume::arn:aws:iam::123456789012:role/iam-role-prod"
+          fi
+        id: config
+    outputs:
+      region: ${{ steps.config.outputs.region }}
+      role_to_assume: ${{ steps.config.outputs.role_to_assume }}
+      ecr_repository: ${{ steps.config.outputs.ecr_repository }}
