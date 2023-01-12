@@ -1,0 +1,43 @@
+name: Build and deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "develop"
+      - "main"
+
+jobs:
+  branch:
+    uses: ./.github/workflows/branch.yml
+
+  config:
+    uses: ./.github/workflows/config.yml
+    needs: [branch]
+    with:
+      phase: ${{ needs.branch.outputs.branch }}
+
+  build:
+    uses: ./.github/workflows/build.yml
+    needs: [branch, config]
+    with:
+      phase: ${{ needs.branch.outputs.branch }}
+      region: ${{ needs.config.outputs.region }}
+      role_to_assume: ${{ needs.config.outputs.role_to_assume }}
+      ecr_repository: ${{ needs.config.outputs.ecr_repository }}
+      node_env: ${{ needs.config.outputs.node_env }}
+      image_tag: ${{ needs.branch.outputs.tag }}
+
+  deploy:
+    uses: ./.github/workflows/deploy.yml
+    needs: [branch, config, build]
+    with:
+      phase: ${{ needs.branch.outputs.branch }}
+      region: ${{ needs.config.outputs.region }}
+      role_to_assume: ${{ needs.config.outputs.role_to_assume }}
+      ecr_repository: ${{ needs.config.outputs.ecr_repository }}
+      image_tag: ${{ needs.branch.outputs.tag }}
+      ecs_cluster: ${{ needs.config.outputs.ecs_cluster }}
+      ecs_service: ${{ needs.config.outputs.ecs_service }}
+      ecs_task_definition: ${{ needs.config.outputs.ecs_task_definition }}
+      ecs_task_container: ${{ needs.config.outputs.ecs_task_container }}

@@ -1,0 +1,69 @@
+name: Configure inputs
+
+on:
+  workflow_call:
+    inputs:
+      phase:
+        required: true
+        type: string
+    outputs:
+      region:
+        value: ${{ jobs.config.outputs.region }}
+      role_to_assume:
+        value: ${{ jobs.config.outputs.role_to_assume }}
+      ecr_repository:
+        value: ${{ jobs.config.outputs.ecr_repository }}
+      node_env:
+        value: ${{ jobs.config.outputs.node_env }}
+      ecs_cluster:
+        value: ${{ jobs.config.outputs.ecs_cluster }}
+      ecs_service:
+        value: ${{ jobs.config.outputs.ecs_service }}
+      ecs_task_definition:
+        value: ${{ jobs.config.outputs.ecs_task_definition }}
+      ecs_task_container:
+        value: ${{ jobs.config.outputs.ecs_task_container }}
+
+env:
+  region: ap-northeast-2
+  container: august-container
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  config:
+    runs-on: ubuntu-latest
+    steps:
+      - name: set aws config
+        run: |
+          if [ "${{ inputs.phase }}" = "develop" ]; then
+            echo "::set-output name=region::${{ env.region }}"
+            echo "::set-output name=role_to_assume::arn:aws:iam::123456789012:role/august-dev-role"
+            echo "::set-output name=ecr_repository::august-dev"
+            echo "::set-output name=node_env::dev"
+            echo "::set-output name=ecs_cluster::august-dev"
+            echo "::set-output name=ecs_service::august-dev"
+            echo "::set-output name=ecs_task_definition::august-dev"
+            echo "::set-output name=ecs_task_container::${{ env.container }}"
+          elif [ "${{ inputs.phase }}" = "main" ]; then
+            echo "::set-output name=region::${{ env.region }}"
+            echo "::set-output name=role_to_assume::arn:aws:iam::123456789012:role/august-prod-role"
+            echo "::set-output name=ecr_repository::august-prod"
+            echo "::set-output name=node_env::prod"
+            echo "::set-output name=ecs_cluster::august-prod"
+            echo "::set-output name=ecs_service::august-prod"
+            echo "::set-output name=ecs_task_definition::august-prod"
+            echo "::set-output name=ecs_task_container::${{ env.container }}"
+          fi
+        id: config
+    outputs:
+      region: ${{ steps.config.outputs.region }}
+      role_to_assume: ${{ steps.config.outputs.role_to_assume }}
+      ecr_repository: ${{ steps.config.outputs.ecr_repository }}
+      node_env: ${{ steps.config.outputs.node_env }}
+      ecs_cluster: ${{ steps.config.outputs.ecs_cluster }}
+      ecs_service: ${{ steps.config.outputs.ecs_service }}
+      ecs_task_definition: ${{ steps.config.outputs.ecs_task_definition }}
+      ecs_task_container: ${{ steps.config.outputs.ecs_task_container }}

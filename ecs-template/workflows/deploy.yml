@@ -1,0 +1,74 @@
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      phase:
+        required: true
+        type: string
+      region:
+        required: true
+        type: string
+      role_to_assume:
+        required: true
+        type: string
+      ecr_repository:
+        required: true
+        type: string
+      image_tag:
+        required: true
+        type: string
+      ecs_cluster:
+        required: true
+        type: string
+      ecs_service:
+        required: true
+        type: string
+      ecs_task_definition:
+        required: true
+        type: string
+      ecs_task_container:
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ inputs.role_to_assume }}
+          aws-region: ${{ inputs.region }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ inputs.ecs_task_definition }} --query taskDefinition > task-definition.json
+          cat task-definition.json
+
+      - name: Render task definition
+        id: render-task-definition
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ inputs.ecs_task_container }}
+          image: ${{ steps.login-ecr.outputs.registry }}/${{ inputs.ecr_repository }}:${{ inputs.image_tag }}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-task-definition.outputs.task-definition }}
+          service: ${{ inputs.ecs_service }}
+          cluster: ${{ inputs.ecs_cluster }}
+          wait-for-service-stability: true

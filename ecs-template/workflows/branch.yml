@@ -1,0 +1,23 @@
+name: Get branch
+
+on:
+  workflow_call:
+    outputs:
+      branch:
+        value: ${{ jobs.branch.outputs.branch }}
+      tag:
+        value: ${{ jobs.branch.outputs.tag }}
+
+jobs:
+  branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: get branch name and tag
+        run: |
+          echo "::set-output name=branch::${GITHUB_REF##*/}"
+          echo "::set-output name=tag::$(echo $GITHUB_REF | cut -d / -f 3)"
+        id: branch
+
+    outputs:
+      branch: ${{ steps.branch.outputs.branch }}
+      tag: ${{ steps.branch.outputs.tag }}
